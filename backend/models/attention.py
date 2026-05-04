@@ -335,6 +335,30 @@ class AttentionHeatmap(nn.Module):
             return heatmap
 
 
+class CrossAttentionFusion(nn.Module):
+    """
+    Cross-attention fusion for CNN + ViT/foundation-model features.
+    CNN pooled features act as query; ViT/DINOv2 features act as key/value.
+    Produces a richer joint representation than simple concatenation.
+    """
+
+    def __init__(self, cnn_dim: int, vit_dim: int, fusion_dim: int = 512, num_heads: int = 8):
+        super().__init__()
+        self.cnn_proj = nn.Linear(cnn_dim, fusion_dim)
+        self.vit_proj = nn.Linear(vit_dim, fusion_dim)
+        self.cross_attn = nn.MultiheadAttention(fusion_dim, num_heads, batch_first=True)
+        self.norm = nn.LayerNorm(fusion_dim)
+        self.out_proj = nn.Linear(fusion_dim, fusion_dim)
+
+    def forward(self, cnn_feats: torch.Tensor, vit_feats: torch.Tensor) -> torch.Tensor:
+        # cnn_feats: (B, cnn_dim)  vit_feats: (B, vit_dim)
+        q = self.cnn_proj(cnn_feats).unsqueeze(1)    # (B, 1, F)
+        kv = self.vit_proj(vit_feats).unsqueeze(1)   # (B, 1, F)
+        attn_out, _ = self.cross_attn(q, kv, kv)
+        out = self.norm(q + attn_out).squeeze(1)      # (B, F)
+        return self.out_proj(out)
+
+
 class FeatureAttentionModule(nn.Module):
     """
     Feature attention module combining spatial and channel attention.

@@ -279,6 +279,53 @@ class MBConvBlock(nn.Module):
         return out
 
 
+class ConvNeXtLBackbone(nn.Module):
+    """
+    ConvNeXt-Large backbone pretrained on ImageNet-22k.
+    Drop-in replacement for EfficientNetB4 with richer texture representations.
+    Outputs (B, 1536, 7, 7) spatial feature maps.
+    """
+
+    def __init__(self, pretrained: bool = True):
+        super().__init__()
+        self.backbone = timm.create_model(
+            'convnext_large.fb_in22k_ft_in1k',
+            pretrained=pretrained,
+            num_classes=0,
+            global_pool=''  # returns (B, 1536, 7, 7)
+        )
+        self.feature_dim = 1536
+
+    def forward(self, x):
+        return self.backbone(x)
+
+
+class EVA02LargeBackbone(nn.Module):
+    """
+    EVA-02-Large backbone pretrained with masked image modeling on CC12M + IN-22k.
+    Outputs flat (B, 1024) token embeddings via global pooling.
+    Bypasses spatial attention since EVA-02 attends globally internally.
+    """
+
+    def __init__(self, pretrained: bool = True, freeze_layers: int = 0):
+        super().__init__()
+        self.backbone = timm.create_model(
+            'eva02_large_patch14_224.mim_in22k',
+            pretrained=pretrained,
+            num_classes=0,
+            global_pool='token'
+        )
+        self.feature_dim = 1024
+        if freeze_layers > 0:
+            blocks = list(self.backbone.blocks.children())
+            for block in blocks[:freeze_layers]:
+                for p in block.parameters():
+                    p.requires_grad_(False)
+
+    def forward(self, x):
+        return self.backbone(x)  # (B, 1024) — flat, not spatial
+
+
 class CompoundScaledEfficientNet(nn.Module):
     """
     EfficientNet with compound scaling.

@@ -1,0 +1,116 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv
+.env
+.env.local
+.env.*.local
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Node.js & Frontend
+node_modules/
+.next/
+.vercel/
+out/
+dist/
+build/
+.turbo/
+
+# ML/Training artifacts
+checkpoints/
+logs/
+results/
+samples/
+*.pth
+*.pt
+*.ckpt
+*.bin
+runs/
+wandb/
+
+# Data (optional - uncomment if you don't want to track data)
+# backend/data/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Package managers
+package-lock.json
+yarn.lock
+poetry.lock
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.swp
+.tmp/
+temp/
+
+# Logging
+*.log
+
+# Environment specific
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE specific
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+
+# Keep tracking important dirs but ignore their content
+!backend/checkpoints/.gitkeep
+!backend/logs/.gitkeep
+!backend/results/.gitkeep
+!backend/data/frames/fake/.gitkeep
+!backend/data/frames/real/.gitkeep

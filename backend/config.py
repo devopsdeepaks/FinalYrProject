@@ -20,15 +20,27 @@ for dir_path in [CHECKPOINT_DIR, LOGS_DIR, DATA_DIR, RESULTS_DIR]:
 # Model Configuration
 MODEL_CONFIG = {
     "image_size": 224,
-    "patch_size": 16,  # For Vision Transformer (16x16 patches)
-    "num_classes": 2,  # Real vs Fake
+    "patch_size": 16,
+    "num_classes": 2,
     "efficientnet_version": "efficientnet_b4",
     "vit_hidden_dim": 768,
     "vit_num_layers": 12,
     "vit_num_heads": 8,
     "attention_heads": 8,
     "dropout": 0.1,
-    "use_binarization": True,  # 38% parameter reduction
+    "use_binarization": True,
+    # Backbone selection: "efficientnet_b4" | "convnext_large" | "eva02_large"
+    "backbone": "convnext_large",
+    # ViT variant: "custom" | "pretrained_large"
+    "vit_variant": "pretrained_large",
+    "freeze_vit": False,
+    # Foundation model feature extractors
+    "use_dino": True,
+    "dino_model": "vit_base_patch14_dinov2.lvd142m",
+    "freeze_dino": True,
+    "use_clip": False,  # optional additive signal
+    # Fusion strategy: "concat" | "cross_attention"
+    "fusion": "cross_attention",
 }
 
 # Preprocessing Configuration
@@ -90,7 +102,9 @@ INFERENCE_CONFIG = {
     "confidence_threshold": 0.5,
     "use_ensemble": True,
     "return_attention_maps": True,
-    "device": "cuda",  # or "cpu"
+    "device": "cuda",
+    "use_onnx": False,  # set True after exporting ONNX model
+    "quantize": False,  # dynamic INT8 quantization
 }
 
 # API Configuration
@@ -133,7 +147,15 @@ PERFORMANCE_TARGETS = {
 
 # Device Configuration
 import torch
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def _select_device():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+DEVICE = _select_device()
 NUM_WORKERS = 4 if torch.cuda.is_available() else 0
 
 # Random Seed for Reproducibility
