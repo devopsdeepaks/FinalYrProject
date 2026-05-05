@@ -78,6 +78,7 @@ class DeepfakeDetectionModel(nn.Module):
         freeze_dino: bool = True,
         use_clip: bool = False,
         fusion: str = "cross_attention",
+        pretrained_backbone: bool = True,
     ):
         super().__init__()
 
@@ -89,7 +90,7 @@ class DeepfakeDetectionModel(nn.Module):
         self.fusion_strategy = fusion
 
         # ── Backbone ──────────────────────────────────────────────────────────
-        self.backbone = _build_backbone(backbone_name, pretrained=True)
+        self.backbone = _build_backbone(backbone_name, pretrained=pretrained_backbone)
         cnn_dim = self.backbone.feature_dim
 
         # EVA-02 is flat; ConvNeXt/EfficientNet return spatial maps

@@ -114,3 +114,6 @@ htmlcov/
 !backend/results/.gitkeep
 !backend/data/frames/fake/.gitkeep
 !backend/data/frames/real/.gitkeep
+
+# Allow the trained demo checkpoint (76 MB, under GitHub's 100 MB limit)
+!backend/checkpoints/demo_model.pth
