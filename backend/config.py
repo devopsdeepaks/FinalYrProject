@@ -45,12 +45,12 @@ MODEL_CONFIG = {
 
 # Preprocessing Configuration
 PREPROCESSING_CONFIG = {
-    "use_fft": True,
-    "use_lbp": True,
+    "use_fft": False,
+    "use_lbp": False,
     "fft_normalize": True,
     "lbp_radius": 1,
     "lbp_points": 8,
-    "face_detection_method": "mtcnn",  # or "dlib", "opencv"
+    "face_detection_method": "opencv",
     "face_margin": 0.2,
 }
 
