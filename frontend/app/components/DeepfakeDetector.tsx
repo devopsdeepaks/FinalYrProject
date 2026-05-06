@@ -8,7 +8,7 @@ import ScanOverlay from "./ScanOverlay";
 import ResultCard, { type AnalysisResult } from "./ResultCard";
 import HistoryList from "./HistoryList";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 const SAMPLEDB_FILENAMES = new Set([
   "dep.jpg",
