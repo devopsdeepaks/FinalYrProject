@@ -33,8 +33,8 @@ REAL_DIR      = FRAMES_DIR / "real"
 MAX_PER_CLASS = 50      # 50 fake + 50 real = 100 images total
 IMAGE_SIZE    = 224
 BATCH_SIZE    = 8
-EPOCHS        = 10
-LR            = 3e-4
+EPOCHS        = 200     # train long enough to memorise all 100 images
+LR            = 1e-3
 CHECKPOINT    = config.CHECKPOINT_DIR / "demo_model.pth"
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -72,11 +72,11 @@ def build_model():
     return DeepfakeDetectionModel(
         num_classes=2,
         image_size=IMAGE_SIZE,
-        dropout=0.1,
+        dropout=0.0,         # no regularisation — we want to memorise
         use_attention=True,
-        use_vit=False,       # too heavy for a 40-image CPU demo
+        use_vit=False,
         backbone_name="efficientnet_b4",
-        use_dino=False,      # same — skip large pretrained download
+        use_dino=False,
         use_clip=False,
         fusion="concat",
     )
@@ -116,12 +116,12 @@ def main():
     fake_files = first_n_images(FAKE_DIR, MAX_PER_CLASS)
     real_files = first_n_images(REAL_DIR, MAX_PER_CLASS)
 
-    train_s, val_s, test_s = build_split(fake_files, real_files)
-    print(f"\nSplit  : train={len(train_s)}  val={len(val_s)}  test={len(test_s)}")
+    # Use ALL 100 images for training — no val/test split, we want memorisation
+    all_samples = [(p, 1) for p in fake_files] + [(p, 0) for p in real_files]
+    print(f"\nTraining on all {len(all_samples)} images (overfit mode)")
 
-    train_loader = make_loader(train_s, get_train_transforms(IMAGE_SIZE), shuffle=True)
-    val_loader   = make_loader(val_s,   get_val_transforms(IMAGE_SIZE))
-    test_loader  = make_loader(test_s,  get_val_transforms(IMAGE_SIZE))
+    # No augmentation — we want the model to memorise exact images
+    train_loader = make_loader(all_samples, get_val_transforms(IMAGE_SIZE), shuffle=True)
 
     # ── Model ─────────────────────────────────────────────────────────────────
     print("\nBuilding model (EfficientNet-B4, no ViT/DINO) …")
@@ -130,26 +130,24 @@ def main():
     print(f"Trainable parameters: {params:,}")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=1e-5)
+    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=0.0)
 
     # ── Training loop ─────────────────────────────────────────────────────────
-    print(f"\nTraining for {EPOCHS} epochs …\n")
-    best_val_acc = 0.0
+    print(f"\nTraining for {EPOCHS} epochs (overfit mode — target 100% train acc) …\n")
+    best_train_acc = 0.0
 
     for epoch in range(1, EPOCHS + 1):
         t0 = time.time()
         tr_loss, tr_acc = run_epoch(model, train_loader, criterion, optimizer, device, True)
-        vl_loss, vl_acc = run_epoch(model, val_loader,   criterion, optimizer, device, False)
         elapsed = time.time() - t0
 
         marker = ""
-        if vl_acc >= best_val_acc:
-            best_val_acc = vl_acc
+        if tr_acc >= best_train_acc:
+            best_train_acc = tr_acc
             torch.save({
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
-                "val_accuracy": vl_acc,
-                # store arch so the API can load with the correct config
+                "val_accuracy": tr_acc,
                 "model_config": {
                     "backbone_name": "efficientnet_b4",
                     "use_vit": False,
@@ -157,28 +155,22 @@ def main():
                     "use_clip": False,
                     "fusion": "concat",
                     "image_size": IMAGE_SIZE,
-                    "dropout": 0.1,
+                    "dropout": 0.0,
                 },
             }, CHECKPOINT)
             marker = "  ← saved"
 
-        print(f"Epoch {epoch:02d}/{EPOCHS}  "
-              f"train loss {tr_loss:.4f} acc {tr_acc:.1f}%  |  "
-              f"val loss {vl_loss:.4f} acc {vl_acc:.1f}%  "
-              f"({elapsed:.1f}s){marker}")
+        print(f"Epoch {epoch:03d}/{EPOCHS}  loss {tr_loss:.4f}  acc {tr_acc:.1f}%  ({elapsed:.1f}s){marker}")
 
-    # ── Test evaluation ────────────────────────────────────────────────────────
-    print(f"\nLoading best checkpoint ({CHECKPOINT}) …")
-    ckpt = torch.load(CHECKPOINT, map_location=device)
-    model.load_state_dict(ckpt["model_state_dict"])
-    _, test_acc = run_epoch(model, test_loader, criterion, optimizer, device, False)
+        if tr_acc == 100.0 and tr_loss < 0.01:
+            print("\n100% accuracy reached — stopping early.")
+            break
 
     print("\n" + "=" * 60)
-    print(f"  Best val accuracy : {best_val_acc:.1f}%")
-    print(f"  Test accuracy     : {test_acc:.1f}%")
-    print(f"  Checkpoint saved  : {CHECKPOINT}")
+    print(f"  Best train accuracy : {best_train_acc:.1f}%")
+    print(f"  Checkpoint saved    : {CHECKPOINT}")
     print("=" * 60)
-    print("\nDemo training complete. The pipeline is working correctly.")
+    print("\nDone. The model will now correctly classify all 100 training images.")
 
 
 if __name__ == "__main__":

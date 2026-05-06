@@ -47,7 +47,13 @@ export default function DeepfakeDetector() {
       const form = new FormData();
       form.append("file", file);
 
-      const res = await fetch(`${API}/predict`, { method: "POST", body: form });
+      // Run API call and minimum animation time in parallel
+      const minDelay = new Promise((r) => setTimeout(r, 3000 + Math.random() * 1500));
+      const [res] = await Promise.all([
+        fetch(`${API}/predict`, { method: "POST", body: form }),
+        minDelay,
+      ]);
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? `Server error ${res.status}`);
